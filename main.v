@@ -8,6 +8,10 @@
 `include "S6.v"
 `include "S7.v"
 `include "S8.v"
+`include "IP.v"
+`include "IP_inv.v"
+`include "PC1.v"
+`include "PC2.v"
 
 module f(input [32:1] R, input [48:1] K, output [32:1] OUT);
   wire [48:1] R_E;
@@ -47,7 +51,7 @@ module f(input [32:1] R, input [48:1] K, output [32:1] OUT);
   P P_inst(S_out, OUT);
 endmodule
 
-module KS_left_shift(input [2:1] level, input [28:1] in, output [28:1] out);
+module KS_left_shift(input [6:1] level, input [28:1] in, output [28:1] out);
   assign out = (level == 1 || level == 2 || level == 9 || level == 16) ?
                 {in[27:1], in[28]} : {in[26:1], in[28:27]};
 endmodule
@@ -80,7 +84,7 @@ module KS(input [64:1] key, output [48:1] k1,
 
   genvar i;
   generate
-    for (int i = 1; i <= 16; i = i + 1) begin : blk
+    for (i = 1; i <= 16; i = i + 1) begin : blk
       KS_left_shift KS_ls_inst1(i, c[i - 1], c[i]);
       KS_left_shift KS_ls_inst2(i, d[i - 1], d[i]);
       assign cd_concat[i] = {c[i], d[i]};
@@ -106,20 +110,46 @@ module KS(input [64:1] key, output [48:1] k1,
   assign k16 = k[16];
 endmodule
 
-module DES();
+module DES(input [64:1] in, input [64:1] key, output [64:1] out);
+  wire [64:1] in_ip;
+  IP ip_inst(in, in_ip);
+
+  wire [32:1] l [0:16];
+  wire [32:1] r [0:16];
+  wire [32:1] f_val [0:16];
+  assign {l[0], r[0]} = in_ip;
+
+  wire [48:1] k [1:16];
+  KS ks_inst(key, k[1], k[2], k[3], k[4], k[5], k[6], k[7], k[8], k[9],
+                  k[10], k[11], k[12], k[13], k[14], k[15], k[16]);
+
+  genvar i;
+  generate
+    for (i = 1; i <= 16; i = i + 1) begin : blk
+      assign l[i] = r[i - 1];
+      f f_inst(r[i - 1], k[i], f_val[i]);
+      assign r[i] = l[i - 1] ^ f_val[i];
+    end
+  endgenerate
+
+  wire [64:1] pre_out;
+  assign pre_out = {r[16], l[16]};
+  IP_inv ip_inv_inst(pre_out, out);
 endmodule
 
 module testbench;
-  reg [32:1] R;
-  reg [48:1] K;
-  wire [32:1] OUT;
+  reg [64:1] M;
+  reg [64:1] K;
+  wire [64:1] OUT;
 
-  f f_inst(R, K, OUT);
+  DES des_inst(M, K, OUT);
 
   initial begin
-    R = 0;
+    M = 0;
     K = 0;
-    #5 $finish;
+    #1 $finish;
   end
-  initial $monitor($time, " R=0x%x, K=0x%x, OUT=0x%x", R, K, OUT);
+  initial $monitor($time, " M=0x%x, K=0x%x, OUT=0x%x", M, K, OUT);
 endmodule
+
+// 8CA64DE9C1B123A7
