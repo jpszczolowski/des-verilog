@@ -1,4 +1,4 @@
-module IP(input [64:1] in, output [64:1] out);
+module IP(input [1:64] in, output [1:64] out);
   assign out[1] = in[58];
   assign out[2] = in[50];
   assign out[3] = in[42];

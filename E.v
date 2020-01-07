@@ -1,4 +1,4 @@
-module E(input [32:1] in, output [48:1] out);
+module E(input [1:32] in, output [1:48] out);
   assign out[1] = in[32];
   assign out[2] = in[1];
   assign out[3] = in[2];

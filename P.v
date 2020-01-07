@@ -1,4 +1,4 @@
-module P(input [32:1] in, output [32:1] out);
+module P(input [1:32] in, output [1:32] out);
   assign out[1] = in[16];
   assign out[2] = in[7];
   assign out[3] = in[20];

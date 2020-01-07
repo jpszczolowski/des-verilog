@@ -1,4 +1,4 @@
-module PC2(input [56:1] in, output [48:1] out);
+module PC2(input [1:56] in, output [1:48] out);
   assign out[1] = in[14];
   assign out[2] = in[17];
   assign out[3] = in[11];
