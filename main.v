@@ -36,7 +36,7 @@ module f(input [32:1] R, input [48:1] K, output [32:1] OUT);
   P P_inst(S_out, OUT);
 endmodule
 
-module KS_left_shift(input [4:1] level, input [28:1] in, output [28:1] out);
+module KS_left_shift(input [5:1] level, input [28:1] in, output [28:1] out);
   assign out = (level == 1 || level == 2 || level == 9 || level == 16) ?
                 {in[27:1], in[28]} : {in[26:1], in[28:27]};
 endmodule
@@ -69,7 +69,7 @@ module KS(input [64:1] key, output [48:1] k1,
   genvar i;
   generate
     for (i = 1; i <= 16; i = i + 1) begin : blk
-      wire [4:1] j = i;
+      wire [5:1] j = i;
       KS_left_shift KS_ls_inst1(j, c[i - 1], c[i]);
       KS_left_shift KS_ls_inst2(j, d[i - 1], d[i]);
       PC2 pc2_inst({c[i], d[i]}, k[i]);
@@ -119,6 +119,8 @@ module DES(input [64:1] in, input [64:1] key, output [64:1] out);
   IP_inv ip_inv_inst({r[16], l[16]}, out);
 endmodule
 
+`define ASSERT(expr) begin if (!(expr)) begin $display("FAIL"); $finish; end end
+
 module testbench;
   reg [64:1] M;
   reg [64:1] K;
@@ -127,12 +129,11 @@ module testbench;
   DES des_inst(M, K, OUT);
 
   initial begin
-    M = 64'h0011223344556677;
-    K = 64'h8899aabbccddeeff;
-    #1 $finish;
+    M = 64'h85abcd1a98876543;
+    K = 64'ha1b2c3d4e5f61234;
+    #1
+    `ASSERT(OUT == 64'h4bbd010363a955c0)
+    $finish;
   end
   initial $monitor($time, " M=0x%x, K=0x%x, OUT=0x%x", M, K, OUT);
 endmodule
-
-// 8CA64DE9C1B123A7
-// 30483c3982fc58a1
