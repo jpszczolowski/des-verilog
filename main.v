@@ -19,24 +19,10 @@ module f(input [32:1] R, input [48:1] K, output [32:1] OUT);
 
   wire [48:1] T = R_E ^ K;
 
-  wire [6:1] S1_in = T[48:43];
-  wire [6:1] S2_in = T[42:37];
-  wire [6:1] S3_in = T[36:31];
-  wire [6:1] S4_in = T[30:25];
-  wire [6:1] S5_in = T[24:19];
-  wire [6:1] S6_in = T[18:13];
-  wire [6:1] S7_in = T[12:7];
-  wire [6:1] S8_in = T[6:1];
+  wire [6:1] S1_in, S2_in, S3_in, S4_in, S5_in, S6_in, S7_in, S8_in;
+  assign {S1_in, S2_in, S3_in, S4_in, S5_in, S6_in, S7_in, S8_in} = T;
 
-  wire [4:1] S1_out;
-  wire [4:1] S2_out;
-  wire [4:1] S3_out;
-  wire [4:1] S4_out;
-  wire [4:1] S5_out;
-  wire [4:1] S6_out;
-  wire [4:1] S7_out;
-  wire [4:1] S8_out;
-
+  wire [4:1] S1_out, S2_out, S3_out, S4_out, S5_out, S6_out, S7_out, S8_out;
   S1 S1_inst(S1_in, S1_out);
   S2 S2_inst(S2_in, S2_out);
   S3 S3_inst(S3_in, S3_out);
@@ -47,11 +33,10 @@ module f(input [32:1] R, input [48:1] K, output [32:1] OUT);
   S8 S8_inst(S8_in, S8_out);
 
   wire [32:1] S_out = {S1_out, S2_out, S3_out, S4_out, S5_out, S6_out, S7_out, S8_out};
-
   P P_inst(S_out, OUT);
 endmodule
 
-module KS_left_shift(input [6:1] level, input [28:1] in, output [28:1] out);
+module KS_left_shift(input [4:1] level, input [28:1] in, output [28:1] out);
   assign out = (level == 1 || level == 2 || level == 9 || level == 16) ?
                 {in[27:1], in[28]} : {in[26:1], in[28:27]};
 endmodule
@@ -77,7 +62,6 @@ module KS(input [64:1] key, output [48:1] k1,
 
   wire [28:1] c [0:16];
   wire [28:1] d [0:16];
-  wire [56:1] cd_concat [0:16];
   wire [48:1] k [1:16];
 
   assign {c[0], d[0]} = key_pc1;
@@ -85,10 +69,10 @@ module KS(input [64:1] key, output [48:1] k1,
   genvar i;
   generate
     for (i = 1; i <= 16; i = i + 1) begin : blk
-      KS_left_shift KS_ls_inst1(i, c[i - 1], c[i]);
-      KS_left_shift KS_ls_inst2(i, d[i - 1], d[i]);
-      assign cd_concat[i] = {c[i], d[i]};
-      PC2 pc2_inst(cd_concat[i], k[i]);
+      wire [4:1] j = i;
+      KS_left_shift KS_ls_inst1(j, c[i - 1], c[i]);
+      KS_left_shift KS_ls_inst2(j, d[i - 1], d[i]);
+      PC2 pc2_inst({c[i], d[i]}, k[i]);
     end
   endgenerate
 
@@ -116,7 +100,7 @@ module DES(input [64:1] in, input [64:1] key, output [64:1] out);
 
   wire [32:1] l [0:16];
   wire [32:1] r [0:16];
-  wire [32:1] f_val [0:16];
+  wire [32:1] f_val [1:16];
   assign {l[0], r[0]} = in_ip;
 
   wire [48:1] k [1:16];
@@ -132,9 +116,7 @@ module DES(input [64:1] in, input [64:1] key, output [64:1] out);
     end
   endgenerate
 
-  wire [64:1] pre_out;
-  assign pre_out = {r[16], l[16]};
-  IP_inv ip_inv_inst(pre_out, out);
+  IP_inv ip_inv_inst({r[16], l[16]}, out);
 endmodule
 
 module testbench;
@@ -145,11 +127,12 @@ module testbench;
   DES des_inst(M, K, OUT);
 
   initial begin
-    M = 0;
-    K = 0;
+    M = 64'h0011223344556677;
+    K = 64'h8899aabbccddeeff;
     #1 $finish;
   end
   initial $monitor($time, " M=0x%x, K=0x%x, OUT=0x%x", M, K, OUT);
 endmodule
 
 // 8CA64DE9C1B123A7
+// 30483c3982fc58a1
