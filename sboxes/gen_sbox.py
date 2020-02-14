@@ -15,9 +15,9 @@ def sbox_value(sbox, num):
     return arr[row][column]
 
 with open(filename_write, 'w') as f:
-    f.write('module {}(input [6:1] in, output [4:1] out);\n'.format(name))
-    f.write('  assign out =\n')
+    f.write('module {}(input [6:1] in, output reg [4:1] out);\n'.format(name))
+    f.write('  always @* case (in)\n')
     for i in range(2 ** 6):
-        f.write('          (in == {}) ? {} :\n'.format(i, sbox_value(arr, i)))
-    f.write('          0;\n')
+        f.write('    {} : out = {};\n'.format(i, sbox_value(arr, i)))
+    f.write('  endcase\n')
     f.write('endmodule\n')
